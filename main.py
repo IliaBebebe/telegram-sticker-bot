@@ -45,13 +45,13 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    png_stream = io.BytesIO()
     try:
         file = await context.bot.get_file(sticker.file_id)
         file_bytes = await file.download_as_bytearray()
         
         with io.BytesIO(file_bytes) as webp_stream:
             with Image.open(webp_stream) as img:
-                png_stream = io.BytesIO()
                 img.save(png_stream, 'PNG')
                 png_stream.seek(0)
         
@@ -60,12 +60,14 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
             document=png_stream,
             filename=f"{sticker.file_unique_id}.png"
         )
-    except Exception as e:
-        logger.error(f"Ошибка при обработке стикера: {e}")
+    except Exception:
+        logger.exception("Произошла ошибка при обработке стикера.")
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Произошла ошибка при конвертации стикера. Попробуй еще раз."
         )
+    finally:
+        png_stream.close()
 
 async def handle_other_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отвечает на сообщения, не являющиеся стикерами."""
