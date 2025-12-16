@@ -1,4 +1,4 @@
-Flask
+Flask[async]
 waitress
 python-telegram-bot
 Pillow
