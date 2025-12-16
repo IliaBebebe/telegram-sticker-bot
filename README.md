@@ -48,7 +48,7 @@
 
 ## Развертывание на Render
 
-Для развертывания на Render следуйте инструкциям на [Render.com](https://render.com/). Убедитесь, что вы настроили переменные окружения `TELEGRAM_TOKEN` и `WEBHOOK_URL` в настройках сервиса Render, а также используете `gunicorn wsgi:application` как команду запуска.
+Для развертывания на Render следуйте инструкциям на [Render.com](https://render.com/). Убедитесь, что вы настроили переменные окружения `TELEGRAM_TOKEN` и `WEBHOOK_URL` в настройках сервиса Render, а также используете `waitress-serve --host=0.0.0.0 --port=$PORT wsgi:application` как команду запуска.
 
 ## Лицензия
 

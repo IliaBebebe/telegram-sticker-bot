@@ -117,7 +117,7 @@ async def setup_webhook():
 
 # Запускаем установку вебхука при старте
 if __name__ != '__main__':
-    # Эта часть выполняется, когда приложение запускается через Gunicorn/WSGI на PythonAnywhere
+    # This part is executed when the application is run by a WSGI server
     loop = asyncio.get_event_loop()
     loop.run_until_complete(setup_webhook())
 
