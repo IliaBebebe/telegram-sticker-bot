@@ -1,2 +1,5 @@
 Flask
 waitress
+python-telegram-bot
+Pillow
+python-dotenv
