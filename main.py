@@ -103,7 +103,11 @@ def index():
 @flask_app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 async def webhook():
     """Эндпоинт, который принимает обновления от Telegram."""
-    update = Update.de_json(request.get_json(force=True), ptb_app.bot)
+    logger.info("!!! Получен входящий запрос от Telegram.")
+    json_data = request.get_json(force=True)
+    logger.info(f"--> Данные: {json_data}")
+    
+    update = Update.de_json(json_data, ptb_app.bot)
     await ptb_app.process_update(update)
     return Response(status=200)
 
