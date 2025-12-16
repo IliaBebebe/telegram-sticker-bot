@@ -100,10 +100,10 @@ flask_app = Flask(__name__)
 def index():
     return 'Ok'
 
-@flask_app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
+@flask_app.route('/webhook', methods=['POST'])
 async def webhook():
     """Эндпоинт, который принимает обновления от Telegram."""
-    logger.info("!!! Получен входящий запрос от Telegram.")
+    logger.info("!!! Получен входящий запрос на /webhook.")
     json_data = request.get_json(force=True)
     logger.info(f"--> Данные: {json_data}")
     
@@ -116,8 +116,9 @@ async def setup_webhook():
     if not WEBHOOK_URL:
         logger.error("Переменная WEBHOOK_URL не задана!")
         return
-    await ptb_app.bot.set_webhook(url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
-    logger.info(f"Вебхук установлен на {WEBHOOK_URL}/{TELEGRAM_TOKEN}")
+    webhook_full_url = f"{WEBHOOK_URL}/webhook"
+    await ptb_app.bot.set_webhook(url=webhook_full_url)
+    logger.info(f"Вебхук установлен на {webhook_full_url}")
 
 # Запускаем установку вебхука при старте
 if __name__ != '__main__':
