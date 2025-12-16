@@ -111,8 +111,9 @@ async def webhook():
     await ptb_app.process_update(update)
     return Response(status=200)
 
-async def setup_webhook():
-    """Устанавливает вебхук при запуске приложения."""
+async def post_init():
+    """Выполняет инициализацию приложения и установку вебхука."""
+    await ptb_app.initialize()
     if not WEBHOOK_URL:
         logger.error("Переменная WEBHOOK_URL не задана!")
         return
@@ -124,7 +125,7 @@ async def setup_webhook():
 if __name__ != '__main__':
     # This part is executed when the application is run by a WSGI server
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(setup_webhook())
+    loop.run_until_complete(post_init())
 
 # Для локального тестирования (не используется на PythonAnywhere)
 if __name__ == '__main__':
