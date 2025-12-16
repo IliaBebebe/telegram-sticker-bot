@@ -2,17 +2,20 @@ import logging
 import os
 import io
 import asyncio
+import secrets
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from PIL import Image
-from flask import Flask, request, Response
 
 # --- Загрузка и настройка ---
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-WEBHOOK_URL = os.getenv('WEBHOOK_URL') # URL вашего вебхука, его нужно будет задать в PythonAnywhere
+WEBHOOK_URL = os.getenv('WEBHOOK_URL')
+# Генерируем секретный токен, если он не задан, для повышения безопасности
+SECRET_TOKEN = os.getenv('SECRET_TOKEN', secrets.token_hex(32))
 
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -83,54 +86,32 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Извини, я не знаю такой команды."
     )
 
-# --- Настройка и запуск приложения ---
-
-# Создаем объект приложения telegram-bot
-ptb_app = Application.builder().token(TELEGRAM_TOKEN).build()
-
-# Регистрируем обработчики в приложении
-ptb_app.add_handler(CommandHandler('start', start))
-ptb_app.add_handler(CommandHandler('help', help_command))
-ptb_app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
-ptb_app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO | filters.VIDEO | filters.AUDIO | filters.Document.ALL, handle_other_messages))
-ptb_app.add_handler(MessageHandler(filters.COMMAND, unknown))
-
-# Создаем веб-сервер Flask
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def index():
-    return 'Ok'
-
-@flask_app.route('/webhook', methods=['POST'])
-async def webhook():
-    """Эндпоинт, который принимает обновления от Telegram."""
-    logger.info("!!! Получен входящий запрос на /webhook.")
-    json_data = request.get_json(force=True)
-    logger.info(f"--> Данные: {json_data}")
-    
-    update = Update.de_json(json_data, ptb_app.bot)
-    await ptb_app.process_update(update)
-    return Response(status=200)
-
-async def post_init():
-    """Выполняет инициализацию приложения и установку вебхука."""
-    await ptb_app.initialize()
-    if not WEBHOOK_URL:
-        logger.error("Переменная WEBHOOK_URL не задана!")
+def main() -> None:
+    """Основная функция запуска бота."""
+    if not all([TELEGRAM_TOKEN, WEBHOOK_URL]):
+        logger.error("Не заданы обязательные переменные окружения: TELEGRAM_TOKEN, WEBHOOK_URL")
         return
-    webhook_full_url = f"{WEBHOOK_URL}/webhook"
-    await ptb_app.bot.set_webhook(url=webhook_full_url)
-    logger.info(f"Вебхук установлен на {webhook_full_url}")
 
-# Запускаем установку вебхука при старте
-if __name__ != '__main__':
-    # This part is executed when the application is run by a WSGI server
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(post_init())
+    # Создаем объект приложения
+    ptb_app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-# Для локального тестирования (не используется на PythonAnywhere)
+    # Регистрируем обработчики
+    ptb_app.add_handler(CommandHandler('start', start))
+    ptb_app.add_handler(CommandHandler('help', help_command))
+    ptb_app.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
+    ptb_app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO | filters.VIDEO | filters.AUDIO | filters.Document.ALL, handle_other_messages))
+    ptb_app.add_handler(MessageHandler(filters.COMMAND, unknown))
+
+    # Получаем порт из переменной окружения, предоставленной Render
+    port = int(os.environ.get('PORT', 8443))
+    
+    # Запускаем бота в режиме вебхука
+    ptb_app.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        secret_token=SECRET_TOKEN,
+        webhook_url=WEBHOOK_URL
+    )
+
 if __name__ == '__main__':
-    logger.warning("Запуск в режиме локального тестирования. Не для продакшена!")
-    # Этот режим не будет работать без properly configured WEBHOOK_URL and a tool like ngrok
-    flask_app.run(debug=True)
+    main()
